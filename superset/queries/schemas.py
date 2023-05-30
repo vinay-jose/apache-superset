@@ -65,7 +65,7 @@ class QuerySchema(Schema):
     tab_name = fields.String()
     tmp_table_name = fields.String()
     tracking_url = fields.String()
-    user = fields.Nested(UserSchema(exclude=["username"]))
+    user = fields.Nested(UserSchema)
 
     class Meta:  # pylint: disable=too-few-public-methods
         model = Query

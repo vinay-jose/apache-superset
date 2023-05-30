@@ -63,4 +63,6 @@ class UpdateAnnotationLayerCommand(BaseCommand):
             exceptions.append(AnnotationLayerNameUniquenessValidationError())
 
         if exceptions:
-            raise AnnotationLayerInvalidError(exceptions=exceptions)
+            exception = AnnotationLayerInvalidError()
+            exception.add_list(exceptions)
+            raise exception

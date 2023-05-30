@@ -58,6 +58,6 @@ class UpdateSSHTunnelCommand(BaseCommand):
             "private_key_password"
         )
         if private_key_password and private_key is None:
-            raise SSHTunnelInvalidError(
-                exceptions=[SSHTunnelRequiredFieldValidationError("private_key")]
-            )
+            exception = SSHTunnelInvalidError()
+            exception.add(SSHTunnelRequiredFieldValidationError("private_key"))
+            raise exception

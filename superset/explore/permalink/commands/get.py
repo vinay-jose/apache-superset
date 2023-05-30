@@ -25,11 +25,7 @@ from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.permalink.types import ExplorePermalinkValue
 from superset.explore.utils import check_access as check_chart_access
 from superset.key_value.commands.get import GetKeyValueCommand
-from superset.key_value.exceptions import (
-    KeyValueCodecDecodeException,
-    KeyValueGetFailedError,
-    KeyValueParseKeyError,
-)
+from superset.key_value.exceptions import KeyValueGetFailedError, KeyValueParseKeyError
 from superset.key_value.utils import decode_permalink_id
 from superset.utils.core import DatasourceType
 
@@ -47,7 +43,6 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
             value: Optional[ExplorePermalinkValue] = GetKeyValueCommand(
                 resource=self.resource,
                 key=key,
-                codec=self.codec,
             ).run()
             if value:
                 chart_id: Optional[int] = value.get("chartId")
@@ -63,7 +58,6 @@ class GetExplorePermalinkCommand(BaseExplorePermalinkCommand):
             return None
         except (
             DatasetNotFoundError,
-            KeyValueCodecDecodeException,
             KeyValueGetFailedError,
             KeyValueParseKeyError,
         ) as ex:

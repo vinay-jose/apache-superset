@@ -17,18 +17,12 @@
 from abc import ABC
 
 from superset.commands.base import BaseCommand
-from superset.dashboards.permalink.schemas import DashboardPermalinkSchema
 from superset.key_value.shared_entries import get_permalink_salt
-from superset.key_value.types import (
-    KeyValueResource,
-    MarshmallowKeyValueCodec,
-    SharedKey,
-)
+from superset.key_value.types import KeyValueResource, SharedKey
 
 
 class BaseDashboardPermalinkCommand(BaseCommand, ABC):
     resource = KeyValueResource.DASHBOARD_PERMALINK
-    codec = MarshmallowKeyValueCodec(DashboardPermalinkSchema())
 
     @property
     def salt(self) -> str:

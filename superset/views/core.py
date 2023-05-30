@@ -228,7 +228,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access_api
     @event_logger.log_this
-    @expose("/override_role_permissions/", methods=("POST",))
+    @expose("/override_role_permissions/", methods=["POST"])
     @deprecated()
     def override_role_permissions(self) -> FlaskResponse:
         """Updates the role with the give datasource permissions.
@@ -282,7 +282,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/request_access/", methods=("POST",))
+    @expose("/request_access/", methods=["POST"])
     @deprecated()
     def request_access(self) -> FlaskResponse:
         datasources = set()
@@ -326,7 +326,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/approve", methods=("POST",))
+    @expose("/approve", methods=["POST"])
     @deprecated()
     def approve(self) -> FlaskResponse:  # pylint: disable=too-many-locals,no-self-use
         def clean_fulfilled_requests(session: Session) -> None:
@@ -566,9 +566,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @handle_api_exception
     @permission_name("explore_json")
-    @expose("/explore_json/data/<cache_key>", methods=("GET",))
+    @expose("/explore_json/data/<cache_key>", methods=["GET"])
     @check_resource_permissions(check_explore_cache_perms)
-    @deprecated(eol_version="3.0")
     def explore_json_data(self, cache_key: str) -> FlaskResponse:
         """Serves cached result data for async explore_json calls
 
@@ -616,7 +615,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @expose("/explore_json/", methods=EXPLORE_JSON_METHODS)
     @etag_cache()
     @check_resource_permissions(check_datasource_perms)
-    @deprecated(eol_version="3.0")
     def explore_json(
         self, datasource_type: Optional[str] = None, datasource_id: Optional[int] = None
     ) -> FlaskResponse:
@@ -710,13 +708,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose(
-        "/import_dashboards/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
+    @expose("/import_dashboards/", methods=["GET", "POST"])
     def import_dashboards(self) -> FlaskResponse:
         """Overrides the dashboards using json instances from the file."""
         import_file = request.files.get("file")
@@ -765,7 +757,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         redirect_url = request.url.replace("/superset/explore", "/explore")
         form_data_key = None
-        if request_form_data := request.args.get("form_data"):
+        request_form_data = request.args.get("form_data")
+        if request_form_data:
             parsed_form_data = loads_request_json(request_form_data)
             slice_id = parsed_form_data.get(
                 "slice_id", int(request.args.get("slice_id", 0))
@@ -796,20 +789,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose(
-        "/explore/<datasource_type>/<int:datasource_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @expose(
-        "/explore/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
+    @expose("/explore/<datasource_type>/<int:datasource_id>/", methods=["GET", "POST"])
+    @expose("/explore/", methods=["GET", "POST"])
     @deprecated()
     # pylint: disable=too-many-locals,too-many-branches,too-many-statements
     def explore(
@@ -1267,14 +1248,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose(
-        "/copy_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
-    @deprecated(new_target="api/v1/dashboard/<dash_id>/copy/")
+    @expose("/copy_dash/<int:dashboard_id>/", methods=["GET", "POST"])
+    @deprecated()
     def copy_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1325,13 +1300,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose(
-        "/save_dash/<int:dashboard_id>/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
+    @expose("/save_dash/<int:dashboard_id>/", methods=["GET", "POST"])
     @deprecated()
     def save_dash(  # pylint: disable=no-self-use
         self, dashboard_id: int
@@ -1378,8 +1347,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/add_slices/<int:dashboard_id>/", methods=("POST",))
-    @deprecated(new_target="api/v1/chart/<chart_id>")
+    @expose("/add_slices/<int:dashboard_id>/", methods=["POST"])
     def add_slices(  # pylint: disable=no-self-use
         self, dashboard_id: int
     ) -> FlaskResponse:
@@ -1398,15 +1366,9 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose(
-        "/testconn",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )  # pylint: disable=no-self-use
+    @expose("/testconn", methods=["POST", "GET"])
     @deprecated(new_target="/api/v1/database/test_connection/")
-    def testconn(self) -> FlaskResponse:
+    def testconn(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """Tests a sqla connection"""
         db_name = request.json.get("name")
         uri = request.json.get("uri")
@@ -1493,11 +1455,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/recent_activity/<int:user_id>/", methods=("GET",))
+    @expose("/recent_activity/<int:user_id>/", methods=["GET"])
     @deprecated(new_target="/api/v1/log/recent_activity/<user_id>/")
     def recent_activity(self, user_id: int) -> FlaskResponse:
         """Recent activity (actions) for a given user"""
-        if error_obj := self.get_user_activity_access_error(user_id):
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
             return error_obj
 
         limit = request.args.get("limit")
@@ -1513,7 +1476,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/available_domains/", methods=("GET",))
+    @expose("/available_domains/", methods=["GET"])
     @deprecated(new_target="/api/v1/available_domains/")
     def available_domains(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
@@ -1528,7 +1491,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/fave_dashboards_by_username/<username>/", methods=("GET",))
+    @expose("/fave_dashboards_by_username/<username>/", methods=["GET"])
     @deprecated(new_target="api/v1/dashboard/favorite_status/")
     def fave_dashboards_by_username(self, username: str) -> FlaskResponse:
         """This lets us use a user's username to pull favourite dashboards"""
@@ -1538,10 +1501,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/fave_dashboards/<int:user_id>/", methods=("GET",))
+    @expose("/fave_dashboards/<int:user_id>/", methods=["GET"])
     @deprecated(new_target="api/v1/dashboard/favorite_status/")
     def fave_dashboards(self, user_id: int) -> FlaskResponse:
-        if error_obj := self.get_user_activity_access_error(user_id):
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
             return error_obj
         qry = (
             db.session.query(Dashboard, FavStar.dttm)
@@ -1574,10 +1538,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/created_dashboards/<int:user_id>/", methods=("GET",))
+    @expose("/created_dashboards/<int:user_id>/", methods=["GET"])
     @deprecated(new_target="api/v1/dashboard/")
     def created_dashboards(self, user_id: int) -> FlaskResponse:
-        if error_obj := self.get_user_activity_access_error(user_id):
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
             return error_obj
         qry = (
             db.session.query(Dashboard)
@@ -1604,14 +1569,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/user_slices", methods=("GET",))
-    @expose("/user_slices/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="/api/v1/chart/")
+    @expose("/user_slices", methods=["GET"])
+    @expose("/user_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def user_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices a user owns, created, modified or faved"""
         if not user_id:
             user_id = cast(int, get_user_id())
-        if error_obj := self.get_user_activity_access_error(user_id):
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
             return error_obj
 
         owner_ids_query = (
@@ -1657,14 +1623,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/created_slices", methods=("GET",))
-    @expose("/created_slices/<int:user_id>/", methods=("GET",))
+    @expose("/created_slices", methods=["GET"])
+    @expose("/created_slices/<int:user_id>/", methods=["GET"])
     @deprecated(new_target="api/v1/chart/")
     def created_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """List of slices created by this user"""
         if not user_id:
             user_id = cast(int, get_user_id())
-        if error_obj := self.get_user_activity_access_error(user_id):
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
             return error_obj
         qry = (
             db.session.query(Slice)
@@ -1688,14 +1655,15 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access_api
     @event_logger.log_this
-    @expose("/fave_slices", methods=("GET",))
-    @expose("/fave_slices/<int:user_id>/", methods=("GET",))
-    @deprecated(new_target="api/v1/chart/")
+    @expose("/fave_slices", methods=["GET"])
+    @expose("/fave_slices/<int:user_id>/", methods=["GET"])
+    @deprecated()
     def fave_slices(self, user_id: Optional[int] = None) -> FlaskResponse:
         """Favorite slices for a user"""
         if user_id is None:
             user_id = cast(int, get_user_id())
-        if error_obj := self.get_user_activity_access_error(user_id):
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
             return error_obj
         qry = (
             db.session.query(Slice, FavStar.dttm)
@@ -1728,7 +1696,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @event_logger.log_this
     @api
     @has_access_api
-    @expose("/warm_up_cache/", methods=("GET",))
+    @expose("/warm_up_cache/", methods=["GET"])
     def warm_up_cache(  # pylint: disable=too-many-locals,no-self-use
         self,
     ) -> FlaskResponse:
@@ -1826,7 +1794,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/favstar/<class_name>/<int:obj_id>/<action>/")
-    @deprecated(new_target="api/v1/dashboard|chart/<pk>/favorites/")
+    @deprecated()
     def favstar(  # pylint: disable=no-self-use
         self, class_name: str, obj_id: int, action: str
     ) -> FlaskResponse:
@@ -1880,8 +1848,6 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         """
         if not dashboard:
             abort(404)
-
-        assert dashboard is not None
 
         has_access_ = False
         for datasource in dashboard.datasources:
@@ -1944,7 +1910,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
 
     @has_access
-    @expose("/dashboard/p/<key>/", methods=("GET",))
+    @expose("/dashboard/p/<key>/", methods=["GET"])
     def dashboard_permalink(  # pylint: disable=no-self-use
         self,
         key: str,
@@ -1958,7 +1924,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             return json_error_response(_("permalink state not found"), status=404)
         dashboard_id, state = value["dashboardId"], value.get("state", {})
         url = f"/superset/dashboard/{dashboard_id}?permalink_key={key}"
-        if url_params := state.get("urlParams"):
+        url_params = state.get("urlParams")
+        if url_params:
             params = parse.urlencode(url_params)
             url = f"{url}&{params}"
         hash_ = state.get("anchor", state.get("hash"))
@@ -1969,12 +1936,12 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @api
     @has_access
     @event_logger.log_this
-    @expose("/log/", methods=("POST",))
+    @expose("/log/", methods=["POST"])
     def log(self) -> FlaskResponse:  # pylint: disable=no-self-use
         return Response(status=200)
 
     @has_access
-    @expose("/get_or_create_table/", methods=("POST",))
+    @expose("/get_or_create_table/", methods=["POST"])
     @event_logger.log_this
     @deprecated(new_target="api/v1/dataset/get_or_create/")
     def sqllab_table_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
@@ -2016,9 +1983,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps({"table_id": table.id}))
 
     @has_access
-    @expose("/sqllab_viz/", methods=("POST",))
+    @expose("/sqllab_viz/", methods=["POST"])
     @event_logger.log_this
-    @deprecated(new_target="api/v1/dataset/")
     def sqllab_viz(self) -> FlaskResponse:  # pylint: disable=no-self-use
         data = json.loads(request.form["data"])
         try:
@@ -2107,17 +2073,18 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         return json_success(json.dumps(payload))
 
     @has_access_api
-    @expose("/estimate_query_cost/<int:database_id>/", methods=("POST",))
-    @expose("/estimate_query_cost/<int:database_id>/<schema>/", methods=("POST",))
+    @expose("/estimate_query_cost/<int:database_id>/", methods=["POST"])
+    @expose("/estimate_query_cost/<int:database_id>/<schema>/", methods=["POST"])
     @event_logger.log_this
-    @deprecated(new_target="api/v1/sqllab/estimate/")
+    @deprecated()
     def estimate_query_cost(  # pylint: disable=no-self-use
         self, database_id: int, schema: Optional[str] = None
     ) -> FlaskResponse:
         mydb = db.session.query(Database).get(database_id)
 
         sql = json.loads(request.form.get("sql", '""'))
-        if template_params := json.loads(request.form.get("templateParams") or "{}"):
+        template_params = json.loads(request.form.get("templateParams") or "{}")
+        if template_params:
             template_processor = get_template_processor(mydb)
             sql = template_processor.process_template(sql, **template_params)
 
@@ -2152,7 +2119,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @expose("/results/<key>/")
     @event_logger.log_this
-    @deprecated(new_target="api/v1/sqllab/results/")
+    @deprecated(new_target="/api/v1/sqllab/results/")
     def results(self, key: str) -> FlaskResponse:
         return self.results_exec(key)
 
@@ -2264,7 +2231,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access_api
     @handle_api_exception
-    @expose("/stop_query/", methods=("POST",))
+    @expose("/stop_query/", methods=["POST"])
     @event_logger.log_this
     @backoff.on_exception(
         backoff.constant,
@@ -2302,13 +2269,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access_api
     @event_logger.log_this
-    @expose(
-        "/validate_sql_json/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
+    @expose("/validate_sql_json/", methods=["POST", "GET"])
     @deprecated(new_target="/api/v1/database/<pk>/validate_sql/")
     def validate_sql_json(
         # pylint: disable=too-many-locals,no-self-use
@@ -2381,10 +2342,11 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @handle_api_exception
     @event_logger.log_this
-    @expose("/sql_json/", methods=("POST",))
+    @expose("/sql_json/", methods=["POST"])
     @deprecated(new_target="/api/v1/sqllab/execute/")
     def sql_json(self) -> FlaskResponse:
-        if errors := SqlJsonPayloadSchema().validate(request.json):
+        errors = SqlJsonPayloadSchema().validate(request.json)
+        if errors:
             return json_error_response(status=400, payload=errors)
 
         try:
@@ -2411,7 +2373,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         )
         execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
-            int(config.get("DISPLAY_MAX_ROW"))
+            int(config.get("DISPLAY_MAX_ROW"))  # type: ignore
         )
         return ExecuteSqlCommand(
             execution_context,
@@ -2436,7 +2398,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             sql_json_executor = SynchronousSqlJsonExecutor(
                 query_dao,
                 get_sql_results,
-                config.get("SQLLAB_TIMEOUT"),
+                config.get("SQLLAB_TIMEOUT"),  # type: ignore
                 is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
             )
         return sql_json_executor
@@ -2458,7 +2420,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access
     @event_logger.log_this
     @expose("/csv/<client_id>")
-    @deprecated(new_target="api/v1/sqllab/export/")
+    @deprecated(new_target="/api/v1/sqllab/export/")
     def csv(self, client_id: str) -> FlaskResponse:  # pylint: disable=no-self-use
         """Download the query results as csv."""
         logger.info("Exporting CSV file [%s]", client_id)
@@ -2611,7 +2573,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             search_user_id = get_user_id()
         database_id = request.args.get("database_id")
         search_text = request.args.get("search_text")
+        status = request.args.get("status")
         # From and To time stamp should be Epoch timestamp in seconds
+        from_time = request.args.get("from")
+        to_time = request.args.get("to")
 
         query = db.session.query(Query)
         if search_user_id:
@@ -2622,7 +2587,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # Filter on db Id
             query = query.filter(Query.database_id == database_id)
 
-        if status := request.args.get("status"):
+        if status:
             # Filter on status
             query = query.filter(Query.status == status)
 
@@ -2630,10 +2595,10 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             # Filter on search text
             query = query.filter(Query.sql.like(f"%{search_text}%"))
 
-        if from_time := request.args.get("from"):
+        if from_time:
             query = query.filter(Query.start_time > int(from_time))
 
-        if to_time := request.args.get("to"):
+        if to_time:
             query = query.filter(Query.start_time < int(to_time))
 
         query_limit = config["QUERY_SEARCH_LIMIT"]
@@ -2696,7 +2661,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
         user_id = -1 if not user else user.id
         # Prevent unauthorized access to other user's profiles,
         # unless configured to do so on with ENABLE_BROAD_ACTIVITY_ACCESS
-        if error_obj := self.get_user_activity_access_error(user_id):
+        error_obj = self.get_user_activity_access_error(user_id)
+        if error_obj:
             return error_obj
 
         payload = {
@@ -2760,13 +2726,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose(
-        "/sqllab/",
-        methods=(
-            "GET",
-            "POST",
-        ),
-    )
+    @expose("/sqllab/", methods=["GET", "POST"])
     def sqllab(self) -> FlaskResponse:
         """SQL Editor"""
         payload = {
@@ -2775,7 +2735,8 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
             **self._get_sqllab_tabs(get_user_id()),
         }
 
-        if form_data := request.form.get("form_data"):
+        form_data = request.form.get("form_data")
+        if form_data:
             try:
                 payload["requested_query"] = json.loads(form_data)
             except json.JSONDecodeError:
@@ -2792,7 +2753,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
 
     @has_access
     @event_logger.log_this
-    @expose("/sqllab/history/", methods=("GET",))
+    @expose("/sqllab/history/", methods=["GET"])
     @event_logger.log_this
     def sqllab_history(self) -> FlaskResponse:
         return super().render_app_template()
@@ -2801,7 +2762,7 @@ class Superset(BaseSupersetView):  # pylint: disable=too-many-public-methods
     @has_access_api
     @event_logger.log_this
     @expose("/schemas_access_for_file_upload")
-    @deprecated(new_target="api/v1/database/{pk}/schemas_access_for_file_upload/")
+    @deprecated()
     def schemas_access_for_file_upload(self) -> FlaskResponse:
         """
         This method exposes an API endpoint to

@@ -62,7 +62,8 @@ def get_sqla_type(native_type: str) -> VisitableType:
     if native_type.upper() in type_map:
         return type_map[native_type.upper()]
 
-    if match := VARCHAR.match(native_type):
+    match = VARCHAR.match(native_type)
+    if match:
         size = int(match.group(1))
         return String(size)
 

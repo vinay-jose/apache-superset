@@ -61,7 +61,6 @@ from superset.databases.filters import DatabaseFilter, DatabaseUploadEnabledFilt
 from superset.databases.schemas import (
     database_schemas_query_schema,
     database_tables_query_schema,
-    DatabaseConnectionSchema,
     DatabaseFunctionNamesResponse,
     DatabasePostSchema,
     DatabasePutSchema,
@@ -123,7 +122,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "validate_sql",
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
-        "get_connection",
     }
     resource_name = "database"
     class_permission_name = "Database"
@@ -146,6 +144,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "driver",
         "force_ctas_schema",
         "impersonate_user",
+        "masked_encrypted_extra",
+        "extra",
+        "parameters",
+        "parameters_schema",
+        "server_cert",
+        "sqlalchemy_uri",
         "is_managed_externally",
         "engine_information",
     ]
@@ -219,7 +223,6 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Database"
     openapi_spec_component_schemas = (
-        DatabaseConnectionSchema,
         DatabaseFunctionNamesResponse,
         DatabaseSchemaAccessForFileUploadResponse,
         DatabaseRelatedObjectsResponse,
@@ -234,51 +237,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         ValidateSQLResponse,
     )
 
-    @expose("/<int:pk>/connection", methods=("GET",))
-    @protect()
-    @safe
-    def get_connection(self, pk: int) -> Response:
-        """Get database connection info.
-        ---
-        get:
-          summary: >-
-            Get a database connection info
-          parameters:
-          - in: path
-            schema:
-              type: integer
-            description: The database id
-            name: pk
-          responses:
-            200:
-              description: Database with connection info
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/DatabaseConnectionSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        database = DatabaseDAO.find_by_id(pk)
-        database_connection_schema = DatabaseConnectionSchema()
-        response = {
-            "id": pk,
-            "result": database_connection_schema.dump(database, many=False),
-        }
-        try:
-            if ssh_tunnel := DatabaseDAO.get_ssh_tunnel(pk):
-                response["result"]["ssh_tunnel"] = ssh_tunnel.data
-            return self.response(200, **response)
-        except SupersetException as ex:
-            return self.response(ex.status, message=ex.message)
-
-    @expose("/<int:pk>", methods=("GET",))
+    @expose("/<int:pk>", methods=["GET"])
     @protect()
     @safe
     def get(self, pk: int, **kwargs: Any) -> Response:
@@ -319,7 +278,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/", methods=("POST",))
+    @expose("/", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics
@@ -407,7 +366,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/<int:pk>", methods=("PUT",))
+    @expose("/<int:pk>", methods=["PUT"])
     @protect()
     @safe
     @statsd_metrics
@@ -491,7 +450,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SSHTunnelingNotEnabledError as ex:
             return self.response_400(message=str(ex))
 
-    @expose("/<int:pk>", methods=("DELETE",))
+    @expose("/<int:pk>", methods=["DELETE"])
     @protect()
     @safe
     @statsd_metrics
@@ -595,7 +554,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             schemas = database.get_all_schema_names(
                 cache=database.schema_cache_enabled,
-                cache_timeout=database.schema_cache_timeout or None,
+                cache_timeout=database.schema_cache_timeout,
                 force=kwargs["rison"].get("force", False),
             )
             schemas = security_manager.get_schemas_accessible_by_user(database, schemas)
@@ -674,7 +633,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseTablesUnexpectedError as ex:
             return self.response_422(ex.message)
 
-    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/table/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
@@ -737,7 +696,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.table_metadata.__name__)
         return self.response(200, **table_info)
 
-    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/table_extra/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
@@ -800,8 +759,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         )
         return self.response(200, **payload)
 
-    @expose("/<int:pk>/select_star/<table_name>/", methods=("GET",))
-    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=("GET",))
+    @expose("/<int:pk>/select_star/<table_name>/", methods=["GET"])
+    @expose("/<int:pk>/select_star/<table_name>/<schema_name>/", methods=["GET"])
     @protect()
     @check_datasource_access
     @safe
@@ -862,7 +821,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         self.incr_stats("success", self.select_star.__name__)
         return self.response(200, result=result)
 
-    @expose("/test_connection/", methods=("POST",))
+    @expose("/test_connection/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -912,7 +871,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SSHTunnelingNotEnabledError as ex:
             return self.response_400(message=str(ex))
 
-    @expose("/<int:pk>/related_objects/", methods=("GET",))
+    @expose("/<int:pk>/related_objects/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -981,7 +940,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             },
         )
 
-    @expose("/<int:pk>/validate_sql/", methods=("POST",))
+    @expose("/<int:pk>/validate_sql/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1041,7 +1000,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except DatabaseNotFoundError:
             return self.response_404()
 
-    @expose("/export/", methods=("GET",))
+    @expose("/export/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -1077,6 +1036,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        token = request.args.get("token")
         requested_ids = kwargs["rison"]
         timestamp = datetime.now().strftime("%Y%m%dT%H%M%S")
         root = f"database_export_{timestamp}"
@@ -1098,13 +1058,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             buf,
             mimetype="application/zip",
             as_attachment=True,
-            download_name=filename,
+            attachment_filename=filename,
         )
-        if token := request.args.get("token"):
+        if token:
             response.set_cookie(token, "done", max_age=600)
         return response
 
-    @expose("/import/", methods=("POST",))
+    @expose("/import/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1225,7 +1185,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/<int:pk>/function_names/", methods=("GET",))
+    @expose("/<int:pk>/function_names/", methods=["GET"])
     @protect()
     @safe
     @statsd_metrics
@@ -1267,7 +1227,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             function_names=database.function_names,
         )
 
-    @expose("/available/", methods=("GET",))
+    @expose("/available/", methods=["GET"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1378,7 +1338,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
         return self.response(200, databases=response)
 
-    @expose("/validate_parameters/", methods=("POST",))
+    @expose("/validate_parameters/", methods=["POST"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -1435,7 +1395,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         command.run()
         return self.response(200, message="OK")
 
-    @expose("/<int:pk>/ssh_tunnel/", methods=("DELETE",))
+    @expose("/<int:pk>/ssh_tunnel/", methods=["DELETE"])
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(

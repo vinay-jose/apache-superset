@@ -92,7 +92,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            raise DashboardInvalidError(exceptions=exceptions)
+            exception = DashboardInvalidError()
+            exception.add_list(exceptions)
+            raise exception
 
         # Validate/Populate role
         if roles_ids is None:
@@ -103,4 +105,6 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            raise DashboardInvalidError(exceptions=exceptions)
+            exception = DashboardInvalidError()
+            exception.add_list(exceptions)
+            raise exception

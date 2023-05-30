@@ -93,7 +93,7 @@ ma_plugin = MarshmallowPlugin()
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedString(
         required=False,
-        metadata={"description": "Contents of BigQuery JSON credentials."},
+        description="Contents of BigQuery JSON credentials.",
     )
     query = fields.Dict(required=False)
 
@@ -384,8 +384,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             }
 
         # Add credentials if they are set on the SQLAlchemy dialect.
+        creds = engine.dialect.credentials_info
 
-        if creds := engine.dialect.credentials_info:
+        if creds:
             to_gbq_kwargs[
                 "credentials"
             ] = service_account.Credentials.from_service_account_info(creds)

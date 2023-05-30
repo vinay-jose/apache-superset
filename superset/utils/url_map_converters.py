@@ -23,7 +23,7 @@ from superset.tags.models import ObjectTypes
 
 class RegexConverter(BaseConverter):
     def __init__(self, url_map: Map, *items: List[str]) -> None:
-        super().__init__(url_map)
+        super().__init__(url_map)  # type: ignore
         self.regex = items[0]
 
 

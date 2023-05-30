@@ -148,7 +148,8 @@ class QueryCacheManager:
         if not key or not _cache[region] or force_query:
             return query_cache
 
-        if cache_value := _cache[region].get(key):
+        cache_value = _cache[region].get(key)
+        if cache_value:
             logger.debug("Cache key: %s", key)
             stats_logger.incr("loading_from_cache")
             try:

@@ -16,15 +16,14 @@
 # under the License.
 from __future__ import annotations
 
-import copy
 import json
-from typing import Any, Dict, Set
+from typing import Dict, Set
 
 from alembic import op
 from sqlalchemy import and_, Column, Integer, String, Text
 from sqlalchemy.ext.declarative import declarative_base
 
-from superset import conf, db, is_feature_enabled
+from superset import db
 from superset.migrations.shared.utils import paginated_update, try_load_json
 
 Base = declarative_base()
@@ -48,13 +47,12 @@ class MigrateViz:
     rename_keys: Dict[str, str] = {}
     source_viz_type: str
     target_viz_type: str
-    has_x_axis_control: bool = False
 
     def __init__(self, form_data: str) -> None:
         self.data = try_load_json(form_data)
 
     def _pre_action(self) -> None:
-        """Some actions before migrate"""
+        """some actions before migrate"""
 
     def _migrate(self) -> None:
         if self.data.get("viz_type") != self.source_viz_type:
@@ -70,67 +68,32 @@ class MigrateViz:
 
             if key in self.rename_keys:
                 rv_data[self.rename_keys[key]] = value
-                continue
 
             if key in self.remove_keys:
                 continue
 
             rv_data[key] = value
 
-        if is_feature_enabled("GENERIC_CHART_AXES"):
-            self._migrate_temporal_filter(rv_data)
-
         self.data = rv_data
 
     def _post_action(self) -> None:
-        """Some actions after migrate"""
-
-    def _migrate_temporal_filter(self, rv_data: Dict[str, Any]) -> None:
-        """Adds a temporal filter."""
-        granularity_sqla = rv_data.pop("granularity_sqla", None)
-        time_range = rv_data.pop("time_range", None) or conf.get("DEFAULT_TIME_FILTER")
-
-        if not granularity_sqla:
-            return
-
-        if self.has_x_axis_control:
-            rv_data["x_axis"] = granularity_sqla
-
-        temporal_filter = {
-            "clause": "WHERE",
-            "subject": granularity_sqla,
-            "operator": "TEMPORAL_RANGE",
-            "comparator": time_range,
-            "expressionType": "SIMPLE",
-        }
-
-        if isinstance(granularity_sqla, dict):
-            temporal_filter["comparator"] = None
-            temporal_filter["expressionType"] = "SQL"
-            temporal_filter["subject"] = granularity_sqla["label"]
-            temporal_filter["sqlExpression"] = granularity_sqla["sqlExpression"]
-
-        rv_data["adhoc_filters"] = (rv_data.get("adhoc_filters") or []) + [
-            temporal_filter
-        ]
+        """some actions after migrate"""
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> Slice:
         clz = cls(slc.params)
-        form_data_bak = copy.deepcopy(clz.data)
+        slc.viz_type = cls.target_viz_type
+        form_data_bak = clz.data.copy()
 
         clz._pre_action()
         clz._migrate()
         clz._post_action()
 
-        # viz_type depends on the migration and should be set after its execution
-        # because a source viz can be mapped to different target viz types
-        slc.viz_type = clz.target_viz_type
-
         # only backup params
         slc.params = json.dumps({**clz.data, FORM_DATA_BAK_FIELD_NAME: form_data_bak})
 
-        if "form_data" in (query_context := try_load_json(slc.query_context)):
+        query_context = try_load_json(slc.query_context)
+        if "form_data" in query_context:
             query_context["form_data"] = clz.data
             slc.query_context = json.dumps(query_context)
         return slc
@@ -138,7 +101,8 @@ class MigrateViz:
     @classmethod
     def downgrade_slice(cls, slc: Slice) -> Slice:
         form_data = try_load_json(slc.params)
-        if "viz_type" in (form_data_bak := form_data.get(FORM_DATA_BAK_FIELD_NAME, {})):
+        form_data_bak = form_data.get(FORM_DATA_BAK_FIELD_NAME, {})
+        if "viz_type" in form_data_bak:
             slc.params = json.dumps(form_data_bak)
             slc.viz_type = form_data_bak.get("viz_type")
             query_context = try_load_json(slc.query_context)

@@ -56,7 +56,8 @@ class BulkDeleteDashboardCommand(BaseCommand):
         if not self._models or len(self._models) != len(self._model_ids):
             raise DashboardNotFoundError()
         # Check there are no associated ReportSchedules
-        if reports := ReportScheduleDAO.find_by_dashboard_ids(self._model_ids):
+        reports = ReportScheduleDAO.find_by_dashboard_ids(self._model_ids)
+        if reports:
             report_names = [report.name for report in reports]
             raise DashboardBulkDeleteFailedReportsExistError(
                 _("There are associated alerts or reports: %s" % ",".join(report_names))

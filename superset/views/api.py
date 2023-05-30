@@ -50,7 +50,7 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/query/", methods=("POST",))
+    @expose("/v1/query/", methods=["POST"])
     def query(self) -> FlaskResponse:
         """
         Takes a query_obj constructed in the client and returns payload data response
@@ -72,14 +72,15 @@ class Api(BaseSupersetView):
     @api
     @handle_api_exception
     @has_access_api
-    @expose("/v1/form_data/", methods=("GET",))
+    @expose("/v1/form_data/", methods=["GET"])
     def query_form_data(self) -> FlaskResponse:  # pylint: disable=no-self-use
         """
         Get the formdata stored in the database for existing slice.
         params: slice_id: integer
         """
         form_data = {}
-        if slice_id := request.args.get("slice_id"):
+        slice_id = request.args.get("slice_id")
+        if slice_id:
             slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
                 form_data = slc.form_data.copy()
@@ -92,7 +93,7 @@ class Api(BaseSupersetView):
     @handle_api_exception
     @has_access_api
     @rison(get_time_range_schema)
-    @expose("/v1/time_range/", methods=("GET",))
+    @expose("/v1/time_range/", methods=["GET"])
     def time_range(self, **kwargs: Any) -> FlaskResponse:
         """Get actually time range from human readable string or datetime expression"""
         time_range = kwargs["rison"]

@@ -82,6 +82,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.first_name",
         "user.id",
         "user.last_name",
+        "user.username",
         "start_time",
         "end_time",
         "tmp_table_name",
@@ -201,7 +202,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
 
-    @expose("/stop", methods=("POST",))
+    @expose("/stop", methods=["POST"])
     @protect()
     @safe
     @statsd_metrics

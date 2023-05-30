@@ -80,7 +80,8 @@ def upgrade_dashboard(dashboard: Dict[str, Any]) -> Tuple[int, int]:
     changed_filters, changed_filter_sets = 0, 0
     # upgrade native select filter metadata
     # upgrade native select filter metadata
-    if native_filters := dashboard.get("native_filter_configuration"):
+    native_filters = dashboard.get("native_filter_configuration")
+    if native_filters:
         changed_filters += upgrade_filters(native_filters)
 
     # upgrade filter sets
@@ -122,7 +123,8 @@ def upgrade():
 def downgrade_dashboard(dashboard: Dict[str, Any]) -> Tuple[int, int]:
     changed_filters, changed_filter_sets = 0, 0
     # upgrade native select filter metadata
-    if native_filters := dashboard.get("native_filter_configuration"):
+    native_filters = dashboard.get("native_filter_configuration")
+    if native_filters:
         changed_filters += downgrade_filters(native_filters)
 
     # upgrade filter sets

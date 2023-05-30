@@ -40,7 +40,8 @@ class MigrateAreaChart(MigrateViz):
         if self.data.get("contribution"):
             self.data["contributionMode"] = "row"
 
-        if stacked := self.data.get("stacked_style"):
+        stacked = self.data.get("stacked_style")
+        if stacked:
             stacked_map = {
                 "expand": "Expand",
                 "stack": "Stack",
@@ -48,6 +49,7 @@ class MigrateAreaChart(MigrateViz):
             self.data["show_extra_controls"] = True
             self.data["stack"] = stacked_map.get(stacked)
 
-        if x_axis_label := self.data.get("x_axis_label"):
+        x_axis_label = self.data.get("x_axis_label")
+        if x_axis_label:
             self.data["x_axis_title"] = x_axis_label
             self.data["x_axis_title_margin"] = 30
