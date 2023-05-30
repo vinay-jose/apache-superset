@@ -103,7 +103,8 @@ def run_migrations_online() -> None:
     kwargs = {}
     if engine.name in ("sqlite", "mysql"):
         kwargs = {"transaction_per_migration": True, "transactional_ddl": True}
-    if configure_args := current_app.extensions["migrate"].configure_args:
+    configure_args = current_app.extensions["migrate"].configure_args
+    if configure_args:
         kwargs.update(configure_args)
 
     context.configure(
@@ -111,7 +112,7 @@ def run_migrations_online() -> None:
         target_metadata=target_metadata,
         # compare_type=True,
         process_revision_directives=process_revision_directives,
-        **kwargs,
+        **kwargs
     )
 
     try:

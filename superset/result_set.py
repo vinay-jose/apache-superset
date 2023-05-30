@@ -70,14 +70,14 @@ def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
         for obj in it:
             if na_obj := pd.isna(obj):
                 # pandas <NA> type cannot be converted to string
-                obj[na_obj] = None
+                obj[na_obj] = None  # type: ignore
             else:
                 try:
                     # for simple string conversions
                     # this handles odd character types better
-                    obj[...] = obj.astype(str)
+                    obj[...] = obj.astype(str)  # type: ignore
                 except ValueError:
-                    obj[...] = stringify(obj)
+                    obj[...] = stringify(obj)  # type: ignore
 
     return result
 
@@ -225,10 +225,12 @@ class SupersetResultSet:
 
     def data_type(self, col_name: str, pa_dtype: pa.DataType) -> Optional[str]:
         """Given a pyarrow data type, Returns a generic database type"""
-        if set_type := self._type_dict.get(col_name):
+        set_type = self._type_dict.get(col_name)
+        if set_type:
             return set_type
 
-        if mapped_type := self.convert_pa_dtype(pa_dtype):
+        mapped_type = self.convert_pa_dtype(pa_dtype)
+        if mapped_type:
             return mapped_type
 
         return None

@@ -172,7 +172,6 @@ class ImportAssetsCommand(BaseCommand):
         )
 
         if exceptions:
-            raise CommandInvalidError(
-                "Error importing assets",
-                exceptions,
-            )
+            exception = CommandInvalidError("Error importing assets")
+            exception.add_list(exceptions)
+            raise exception

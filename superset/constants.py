@@ -154,7 +154,6 @@ MODEL_API_RW_METHOD_PERMISSION_MAP = {
     "add_objects": "write",
     "delete_object": "write",
     "copy_dash": "write",
-    "get_connection": "write",
 }
 
 EXTRA_FORM_DATA_APPEND_KEYS = {

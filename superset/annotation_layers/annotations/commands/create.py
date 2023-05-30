@@ -73,4 +73,6 @@ class CreateAnnotationCommand(BaseCommand):
             exceptions.append(AnnotationDatesValidationError())
 
         if exceptions:
-            raise AnnotationInvalidError(exceptions=exceptions)
+            exception = AnnotationInvalidError()
+            exception.add_list(exceptions)
+            raise exception

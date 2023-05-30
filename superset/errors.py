@@ -211,7 +211,8 @@ class SupersetError:
         Mutates the extra params with user facing error codes that map to backend
         errors.
         """
-        if issue_codes := ERROR_TYPES_TO_ISSUE_CODES_MAPPING.get(self.error_type):
+        issue_codes = ERROR_TYPES_TO_ISSUE_CODES_MAPPING.get(self.error_type)
+        if issue_codes:
             self.extra = self.extra or {}
             self.extra.update(
                 {

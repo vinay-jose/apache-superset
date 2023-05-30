@@ -68,7 +68,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.sql_parse import ParsedQuery, Table
 from superset.superset_typing import ResultSetColumnType
 from superset.utils import core as utils
-from superset.utils.core import ColumnSpec, GenericDataType
+from superset.utils.core import ColumnSpec, GenericDataType, get_username
 from superset.utils.hashing import md5_sha_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
 
@@ -355,11 +355,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # This set will give the keywords for data limit statements
     # to consider for the engines with TOP SQL parsing
     top_keywords: Set[str] = {"TOP"}
-    # A set of disallowed connection query parameters by driver name
-    disallow_uri_query_params: Dict[str, Set[str]] = {}
+    # A set of disallowed connection query parameters
+    disallow_uri_query_params: Set[str] = set()
     # A Dict of query parameters that will always be used on every connection
-    # by driver name
-    enforce_uri_query_params: Dict[str, Dict[str, Any]] = {}
+    enforce_uri_query_params: Dict[str, Any] = {}
 
     force_column_alias_quotes = False
     arraysize = 0
@@ -900,9 +899,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 if word.upper() in cls.select_keywords
             ]
             first_select = selects[0]
-            if tokens[first_select + 1].upper() == "DISTINCT":
-                first_select += 1
-
             tokens.insert(first_select + 1, "TOP")
             tokens.insert(first_select + 2, str(final_limit))
 
@@ -1100,10 +1096,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         This is important because DB engine specs can be installed from 3rd party
         packages.
         """
-        return uri, {
-            **connect_args,
-            **cls.enforce_uri_query_params.get(uri.get_driver_name(), {}),
-        }
+        return uri, {**connect_args, **cls.enforce_uri_query_params}
 
     @classmethod
     def patch(cls) -> None:
@@ -1276,7 +1269,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         schema: Optional[str],
         database: Database,
         query: Select,
-        columns: Optional[List[Dict[str, Any]]] = None,
+        columns: Optional[List[Dict[str, str]]] = None,
     ) -> Optional[Select]:
         """
         Add a where clause to a query to reference only the most recent partition
@@ -1393,6 +1386,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         if sql_query_mutator and not mutate_after_split:
             sql = sql_query_mutator(
                 sql,
+                user_name=get_username(),  # TODO(john-bodley): Deprecate in 3.0.
                 security_manager=security_manager,
                 database=database,
             )
@@ -1703,7 +1697,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param source: Type coming from the database table or cursor description
         :return: ColumnSpec object
         """
-        if col_types := cls.get_column_types(native_type):
+        col_types = cls.get_column_types(native_type)
+        if col_types:
             column_type, generic_type = col_types
             is_dttm = generic_type == GenericDataType.TEMPORAL
             return ColumnSpec(
@@ -1855,38 +1850,29 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param sqlalchemy_uri:
         """
-        if existing_disallowed := cls.disallow_uri_query_params.get(
-            sqlalchemy_uri.get_driver_name(), set()
-        ).intersection(sqlalchemy_uri.query):
+        if existing_disallowed := cls.disallow_uri_query_params.intersection(
+            sqlalchemy_uri.query
+        ):
             raise ValueError(f"Forbidden query parameter(s): {existing_disallowed}")
 
 
 # schema for adding a database by providing parameters instead of the
 # full SQLAlchemy URI
 class BasicParametersSchema(Schema):
-    username = fields.String(
-        required=True, allow_none=True, metadata={"description": __("Username")}
-    )
-    password = fields.String(allow_none=True, metadata={"description": __("Password")})
-    host = fields.String(
-        required=True, metadata={"description": __("Hostname or IP address")}
-    )
+    username = fields.String(required=True, allow_none=True, description=__("Username"))
+    password = fields.String(allow_none=True, description=__("Password"))
+    host = fields.String(required=True, description=__("Hostname or IP address"))
     port = fields.Integer(
         required=True,
-        metadata={"description": __("Database port")},
+        description=__("Database port"),
         validate=Range(min=0, max=2**16, max_inclusive=False),
     )
-    database = fields.String(
-        required=True, metadata={"description": __("Database name")}
-    )
+    database = fields.String(required=True, description=__("Database name"))
     query = fields.Dict(
-        keys=fields.Str(),
-        values=fields.Raw(),
-        metadata={"description": __("Additional parameters")},
+        keys=fields.Str(), values=fields.Raw(), description=__("Additional parameters")
     )
     encryption = fields.Boolean(
-        required=False,
-        metadata={"description": __("Use an encrypted connection to the database")},
+        required=False, description=__("Use an encrypted connection to the database")
     )
 
 
@@ -1945,7 +1931,7 @@ class BasicParametersMixin:
             query.update(cls.encryption_parameters)
 
         return str(
-            URL.create(
+            URL(
                 f"{cls.engine}+{cls.default_driver}".rstrip("+"),  # type: ignore
                 username=parameters.get("username"),
                 password=parameters.get("password"),
@@ -1994,8 +1980,9 @@ class BasicParametersMixin:
         required = {"host", "port", "username", "database"}
         parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
+        missing = sorted(required - present)
 
-        if missing := sorted(required - present):
+        if missing:
             errors.append(
                 SupersetError(
                     message=f'One or more parameters are missing: {", ".join(missing)}',

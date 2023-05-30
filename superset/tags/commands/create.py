@@ -60,4 +60,6 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
                 TagCreateFailedError(f"invalid object type {self._object_type}")
             )
         if exceptions:
-            raise TagInvalidError(exceptions=exceptions)
+            exception = TagInvalidError()
+            exception.add_list(exceptions)
+            raise exception

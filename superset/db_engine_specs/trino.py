@@ -57,7 +57,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     ) -> Dict[str, Any]:
         metadata = {}
 
-        if indexes := database.get_indexes(table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if indexes:
             col_names, latest_parts = cls.latest_partition(
                 table_name, schema_name, database, show_first=True
             )
@@ -78,7 +79,11 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
                 ),
                 "latest": dict(zip(col_names, latest_parts)),
                 "partitionQuery": cls._partition_query(
-                    table_name=table_name,
+                    table_name=(
+                        f"{schema_name}.{table_name}"
+                        if schema_name and "." not in table_name
+                        else table_name
+                    ),
                     schema=schema_name,
                     indexes=indexes,
                     database=database,
@@ -149,7 +154,8 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def handle_cursor(cls, cursor: Cursor, query: Query, session: Session) -> None:
-        if tracking_url := cls.get_tracking_url(cursor):
+        tracking_url = cls.get_tracking_url(cursor)
+        if tracking_url:
             query.tracking_url = tracking_url
 
         # Adds the executed query id to the extra payload so the query can be cancelled

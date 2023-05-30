@@ -117,7 +117,9 @@ class CreateReportScheduleCommand(CreateMixin, BaseReportScheduleCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            raise ReportScheduleInvalidError(exceptions=exceptions)
+            exception = ReportScheduleInvalidError()
+            exception.add_list(exceptions)
+            raise exception
 
     def _validate_report_extra(self, exceptions: List[ValidationError]) -> None:
         extra: Optional[ReportScheduleExtra] = self._properties.get("extra")

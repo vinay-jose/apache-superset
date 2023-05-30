@@ -114,4 +114,6 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             self._properties["dashboards"] = dashboards
 
         if exceptions:
-            raise ChartInvalidError(exceptions=exceptions)
+            exception = ChartInvalidError()
+            exception.add_list(exceptions)
+            raise exception

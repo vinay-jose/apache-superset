@@ -40,8 +40,9 @@ def upgrade():
     insp = engine.reflection.Inspector.from_engine(bind)
 
     # Drop the uniqueness constraint if it exists.
+    constraint = generic_find_uq_constraint_name("tables", {"table_name"}, insp)
 
-    if constraint := generic_find_uq_constraint_name("tables", {"table_name"}, insp):
+    if constraint:
         with op.batch_alter_table("tables", naming_convention=conv) as batch_op:
             batch_op.drop_constraint(constraint, type_="unique")
 

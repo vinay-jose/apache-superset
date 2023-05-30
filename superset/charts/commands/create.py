@@ -77,4 +77,6 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         except ValidationError as ex:
             exceptions.append(ex)
         if exceptions:
-            raise ChartInvalidError(exceptions=exceptions)
+            exception = ChartInvalidError()
+            exception.add_list(exceptions)
+            raise exception

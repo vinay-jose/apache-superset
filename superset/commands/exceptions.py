@@ -56,26 +56,22 @@ class CommandInvalidError(CommandException):
 
     status = 422
 
-    def __init__(
-        self,
-        message: str = "",
-        exceptions: Optional[List[ValidationError]] = None,
-    ) -> None:
-        self._exceptions = exceptions or []
+    def __init__(self, message: str = "") -> None:
+        self._invalid_exceptions: List[ValidationError] = []
         super().__init__(message)
 
-    def append(self, exception: ValidationError) -> None:
-        self._exceptions.append(exception)
+    def add(self, exception: ValidationError) -> None:
+        self._invalid_exceptions.append(exception)
 
-    def extend(self, exceptions: List[ValidationError]) -> None:
-        self._exceptions.extend(exceptions)
+    def add_list(self, exceptions: List[ValidationError]) -> None:
+        self._invalid_exceptions.extend(exceptions)
 
     def get_list_classnames(self) -> List[str]:
-        return list(sorted({ex.__class__.__name__ for ex in self._exceptions}))
+        return list(sorted({ex.__class__.__name__ for ex in self._invalid_exceptions}))
 
     def normalized_messages(self) -> Dict[Any, Any]:
         errors: Dict[Any, Any] = {}
-        for exception in self._exceptions:
+        for exception in self._invalid_exceptions:
             errors.update(exception.normalized_messages())
         return errors
 

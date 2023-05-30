@@ -24,7 +24,6 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Type, Union
 
 import sqlalchemy as sqla
-from flask import current_app
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -273,10 +272,7 @@ class Dashboard(Model, AuditMixinNullable, ImportExportMixin):
 
     @property
     def changed_by_url(self) -> str:
-        if (
-            not self.changed_by
-            or not current_app.config["ENABLE_BROAD_ACTIVITY_ACCESS"]
-        ):
+        if not self.changed_by:
             return ""
         return f"/superset/profile/{self.changed_by.username}"
 

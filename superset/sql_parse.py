@@ -23,8 +23,6 @@ from urllib import parse
 
 import sqlparse
 from sqlalchemy import and_
-from sqlparse import keywords
-from sqlparse.lexer import Lexer
 from sqlparse.sql import (
     Identifier,
     IdentifierList,
@@ -61,13 +59,15 @@ CTE_PREFIX = "CTE__"
 
 logger = logging.getLogger(__name__)
 
+
 # TODO: Workaround for https://github.com/andialbrecht/sqlparse/issues/652.
-# configure the Lexer to extend sqlparse
-# reference: https://sqlparse.readthedocs.io/en/stable/extending/
-lex = Lexer.get_default_instance()
-sqlparser_sql_regex = keywords.SQL_REGEX
-sqlparser_sql_regex.insert(25, (r"'(''|\\\\|\\|[^'])*'", sqlparse.tokens.String.Single))
-lex.set_SQL_REGEX(sqlparser_sql_regex)
+sqlparse.keywords.SQL_REGEX.insert(
+    0,
+    (
+        re.compile(r"'(''|\\\\|\\|[^'])*'", sqlparse.keywords.FLAGS).match,
+        sqlparse.tokens.String.Single,
+    ),
+)
 
 
 class CtasMethod(str, Enum):
@@ -509,10 +509,6 @@ def has_table_query(token_list: TokenList) -> bool:
     """
     state = InsertRLSState.SCANNING
     for token in token_list.tokens:
-        # Ignore comments
-        if isinstance(token, sqlparse.sql.Comment):
-            continue
-
         # Recurse into child token list
         if isinstance(token, TokenList) and has_table_query(token):
             return True

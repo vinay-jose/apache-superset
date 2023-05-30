@@ -53,7 +53,8 @@ from cachelib.base import BaseCache
 from celery.schedules import crontab
 from dateutil import tz
 from flask import Blueprint
-from flask_appbuilder.security.manager import AUTH_DB
+# from flask_appbuilder.security.manager import AUTH_DB
+from flask_appbuilder.security.manager import AUTH_OID
 from pandas._libs.parsers import STR_NA_VALUES  # pylint: disable=no-name-in-module
 from sqlalchemy.orm.query import Query
 
@@ -69,6 +70,8 @@ from superset.utils.core import is_test, NO_TIME_RANGE, parse_boolean_string
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
+
+from superset.oidc_security import OIDCSecurityManager
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +187,15 @@ SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT = 0
 SUPERSET_DASHBOARD_PERIODICAL_REFRESH_WARNING_MESSAGE = None
 
 SUPERSET_DASHBOARD_POSITION_DATA_LIMIT = 65535
-CUSTOM_SECURITY_MANAGER = None
+
+# changes by vj
+
+OIDC_CLIENT_SECRETS = './superset/client_secret.json'
+OIDC_ID_TOKEN_COOKIE_SECURE = False
+OIDC_REQUIRE_VERIFIED_EMAIL = False
+
+CUSTOM_SECURITY_MANAGER = OIDCSecurityManager
+# CUSTOM_SECURITY_MANAGER = None
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 # ---------------------------------------------------------
 
@@ -265,9 +276,9 @@ FLASK_USE_RELOAD = True
 PROFILING = False
 
 # Superset allows server-side python stacktraces to be surfaced to the
-# user when this feature is on. This may have security implications
+# user when this feature is on. This may has security implications
 # and it's more secure to turn it off in production settings.
-SHOW_STACKTRACE = False
+SHOW_STACKTRACE = True
 
 # Use all X-Forwarded headers when ENABLE_PROXY_FIX is True.
 # When proxying to a different port, set "x_port" to 0 to avoid downstream issues.
@@ -319,21 +330,22 @@ DRUID_ANALYSIS_TYPES = ["cardinality"]
 # AUTH_DB : Is for database (username/password)
 # AUTH_LDAP : Is for LDAP
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
-AUTH_TYPE = AUTH_DB
+# AUTH_TYPE = AUTH_DB
+AUTH_TYPE = AUTH_OID  # changes by vj
 
-# Uncomment to setup Full admin role name
+# Uncomment to set up Full admin role name
 # AUTH_ROLE_ADMIN = 'Admin'
 
 # Uncomment to setup Public role name, no authentication needed
 # AUTH_ROLE_PUBLIC = 'Public'
 
 # Will allow user self registration
-# AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = True  # changes by vj
 
 # The default user self registration role
-# AUTH_USER_REGISTRATION_ROLE = "Public"
+AUTH_USER_REGISTRATION_ROLE = "Gamma"  # changes by vj
 
-# When using LDAP Auth, setup the LDAP server
+# When using LDAP Auth, set up the LDAP server
 # AUTH_LDAP_SERVER = "ldap://ldapserver.new"
 
 # Uncomment to setup OpenID providers example for OpenID authentication
@@ -377,25 +389,6 @@ LANGUAGES = {
 # incomplete and not well maintained.
 LANGUAGES = {}
 
-
-# Override the default d3 locale format
-# Default values are equivalent to
-# D3_FORMAT = {
-#     "decimal": ".",           # - decimal place string (e.g., ".").
-#     "thousands": ",",         # - group separator string (e.g., ",").
-#     "grouping": [3],          # - array of group sizes (e.g., [3]), cycled as needed.
-#     "currency": ["$", ""]     # - currency prefix/suffix strings (e.g., ["$", ""])
-# }
-# https://github.com/d3/d3-format/blob/main/README.md#formatLocale
-class D3Format(TypedDict, total=False):
-    decimal: str
-    thousands: str
-    grouping: List[int]
-    currency: List[str]
-
-
-D3_FORMAT: D3Format = {}
-
 # ---------------------------------------------------
 # Feature flags
 # ---------------------------------------------------
@@ -406,8 +399,8 @@ D3_FORMAT: D3Format = {}
 # will result in combined feature flags of { 'FOO': True, 'BAR': True, 'BAZ': True }
 DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Experimental feature introducing a client (browser) cache
-    "CLIENT_CACHE": False,  # deprecated
-    "DISABLE_DATASET_SOURCE_EDIT": False,  # deprecated
+    "CLIENT_CACHE": False,
+    "DISABLE_DATASET_SOURCE_EDIT": False,
     # When using a recent version of Druid that supports JOINs turn this on
     "DRUID_JOINS": False,
     "DYNAMIC_PLUGINS": False,
@@ -422,7 +415,7 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # When ENABLE_EXPLORE_JSON_CSRF_PROTECTION is set to true, your users cannot
     # make GET request to explore_json. explore_json accepts both GET and POST request.
     # See `PR 7935 <https://github.com/apache/superset/pull/7935>`_ for more details.
-    "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,  # deprecated
+    "ENABLE_EXPLORE_JSON_CSRF_PROTECTION": False,
     "ENABLE_TEMPLATE_PROCESSING": False,
     "ENABLE_TEMPLATE_REMOVE_FILTERS": False,
     # Allow for javascript controls components
@@ -437,19 +430,19 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     "PRESTO_EXPAND_DATA": False,
     # Exposes API endpoint to compute thumbnails
     "THUMBNAILS": False,
-    "DASHBOARD_CACHE": False,  # deprecated
-    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,  # deprecated
+    "DASHBOARD_CACHE": False,
+    "REMOVE_SLICE_LEVEL_LABEL_COLORS": False,
     "SHARE_QUERIES_VIA_KV_STORE": False,
     "TAGGING_SYSTEM": False,
     "SQLLAB_BACKEND_PERSISTENCE": True,
     "LISTVIEWS_DEFAULT_CARD_VIEW": False,
     # When True, this escapes HTML (rather than rendering it) in Markdown components
     "ESCAPE_MARKDOWN_HTML": False,
-    "DASHBOARD_NATIVE_FILTERS": True,  # deprecated
+    "DASHBOARD_NATIVE_FILTERS": True,
     "DASHBOARD_CROSS_FILTERS": False,
     # Feature is under active development and breaking changes are expected
-    "DASHBOARD_NATIVE_FILTERS_SET": False,  # deprecated
-    "DASHBOARD_FILTERS_EXPERIMENTAL": False,  # deprecated
+    "DASHBOARD_NATIVE_FILTERS_SET": False,
+    "DASHBOARD_FILTERS_EXPERIMENTAL": False,
     "DASHBOARD_VIRTUALIZATION": False,
     "GLOBAL_ASYNC_QUERIES": False,
     "VERSIONED_EXPORT": True,
@@ -457,8 +450,9 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Enables Alerts and reports new implementation
     "ALERT_REPORTS": False,
     "DASHBOARD_RBAC": False,
-    "ENABLE_EXPLORE_DRAG_AND_DROP": True,  # deprecated
+    "ENABLE_EXPLORE_DRAG_AND_DROP": True,
     "ENABLE_ADVANCED_DATA_TYPES": False,
+    "ENABLE_DND_WITH_CLICK_UX": True,
     # Enabling ALERTS_ATTACH_REPORTS, the system sends email and slack message
     # with screenshot and link
     # Disables ALERTS_ATTACH_REPORTS, the system DOES NOT generate screenshot
@@ -469,9 +463,10 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Allow users to export full CSV of table viz type.
     # This could cause the server to run out of memory or compute.
     "ALLOW_FULL_CSV_EXPORT": False,
-    "GENERIC_CHART_AXES": True,  # deprecated
+    "GENERIC_CHART_AXES": True,
     "ALLOW_ADHOC_SUBQUERY": False,
     "USE_ANALAGOUS_COLORS": False,
+    "DASHBOARD_EDIT_CHART_IN_NEW_TAB": False,
     # Apply RLS rules to SQL Lab queries. This requires parsing and manipulating the
     # query, and might break queries and/or allow users to bypass RLS. Use with care!
     "RLS_IN_SQLLAB": False,
@@ -495,7 +490,6 @@ DEFAULT_FEATURE_FLAGS: Dict[str, bool] = {
     # Users must check whether the DB engine supports SSH Tunnels
     # otherwise enabling this flag won't have any effect on the DB.
     "SSH_TUNNELING": False,
-    "AVOID_COLORS_COLLISION": True,
 }
 
 # ------------------------------
@@ -620,14 +614,16 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: List[Dict[str, Any]] = []
 # ---------------------------------------------------
 # Thumbnail config (behind feature flag)
 # ---------------------------------------------------
-# By default, thumbnails are rendered per user, and will fall back to the Selenium
-# user for anonymous users. Similar to Alerts & Reports, thumbnails
-# can be configured to always be rendered as a fixed user. See
-# `superset.tasks.types.ExecutorType` for a full list of executor options.
-# To always use a fixed user account, use the following configuration:
-# THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
+# When executing Alerts & Reports or Thumbnails as the Selenium user, this defines
+# the username of the account used to render the queries and dashboards/charts
 THUMBNAIL_SELENIUM_USER: Optional[str] = "admin"
-THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER, ExecutorType.SELENIUM]
+
+# To be able to have different thumbnails for different users, use these configs to
+# define which user to execute the thumbnails and potentially custom functions for
+# calculating thumbnail digests. To have unique thumbnails for all users, use the
+# following config:
+# THUMBNAIL_EXECUTE_AS = [ExecutorType.CURRENT_USER]
+THUMBNAIL_EXECUTE_AS = [ExecutorType.SELENIUM]
 
 # By default, thumbnail digests are calculated based on various parameters in the
 # chart/dashboard metadata, and in the case of user-specific thumbnails, the
@@ -835,6 +831,7 @@ BACKUP_COUNT = 30
 #     database,
 #     query,
 #     schema=None,
+#     user=None,  # TODO(john-bodley): Deprecate in 3.0.
 #     client=None,
 #     security_manager=None,
 #     log_params=None,
@@ -1188,6 +1185,7 @@ DB_CONNECTION_MUTATOR = None
 #
 #    def SQL_QUERY_MUTATOR(
 #        sql,
+#        user_name=user_name,  # TODO(john-bodley): Deprecate in 3.0.
 #        security_manager=security_manager,
 #        database=database,
 #    ):
@@ -1246,13 +1244,12 @@ MACHINE_AUTH_PROVIDER_CLASS = "superset.utils.machine_auth.MachineAuthProvider"
 ALERT_REPORTS_CRON_WINDOW_SIZE = 59
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 # Which user to attempt to execute Alerts/Reports as. By default,
-# execute as the primary owner of the alert/report (giving priority to the last
-# modifier and then the creator if either is contained within the list of owners,
-# otherwise the first owner will be used).
-#
+# use the user defined in the `THUMBNAIL_SELENIUM_USER` config parameter.
 # To first try to execute as the creator in the owners list (if present), then fall
 # back to the creator, then the last modifier in the owners list (if present), then the
-# last modifier, then an owner and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
+# last modifier, then an owner (giving priority to the last modifier and then the
+# creator if either is contained within the list of owners, otherwise the first owner
+# will be used) and finally `THUMBNAIL_SELENIUM_USER`, set as follows:
 # ALERT_REPORTS_EXECUTE_AS = [
 #     ExecutorType.CREATOR_OWNER,
 #     ExecutorType.CREATOR,
@@ -1261,7 +1258,7 @@ ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 #     ExecutorType.OWNER,
 #     ExecutorType.SELENIUM,
 # ]
-ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.OWNER]
+ALERT_REPORTS_EXECUTE_AS: List[ExecutorType] = [ExecutorType.SELENIUM]
 # if ALERT_REPORTS_WORKING_TIME_OUT_KILL is True, set a celery hard timeout
 # Equal to working timeout + ALERT_REPORTS_WORKING_TIME_OUT_LAG
 ALERT_REPORTS_WORKING_TIME_OUT_LAG = int(timedelta(seconds=10).total_seconds())
@@ -1377,6 +1374,17 @@ TALISMAN_CONFIG = {
     "force_https": True,
     "force_https_permanent": False,
 }
+
+# It is possible to customize which tables and roles are featured in the RLS
+# dropdown. When set, this dict is assigned to `add_form_query_rel_fields` and
+# `edit_form_query_rel_fields` on `RowLevelSecurityFiltersModelView`. Example:
+#
+# from flask_appbuilder.models.sqla import filters
+# RLS_FORM_QUERY_REL_FIELDS = {
+#     "roles": [["name", filters.FilterStartsWith, "RlsRole"]]
+#     "tables": [["table_name", filters.FilterContains, "rls"]]
+# }
+RLS_FORM_QUERY_REL_FIELDS: Optional[Dict[str, List[List[Any]]]] = None
 
 #
 # Flask session cookie options
